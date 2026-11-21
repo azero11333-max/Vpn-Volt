@@ -1,5 +1,4 @@
-
 window.VOLT_SUPABASE_CONFIG = {
-  url: "https://egjgonfpjifujroiudzl.supabase.co",
-  anonKey: "sb_publishable_bIUtP9eDKNO-oC2eObXjsA_PHu-zmcR"
+  url: "https://ougeypekpooowfnbhvoq.supabase.co",
+  anonKey: "sb_publishable_MqDbE4JC8cPg4pIPE6IKfw_lGj8tJgC"
 };
