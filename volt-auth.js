@@ -94,42 +94,71 @@
   window.VOLTAuth = {
     isConfigured: configured,
 
-    async signUp(name, email, password) {
-      const db = ready();
+    
+async signUp(name, email, password) {
+  const db = ready();
 
-      const cleanName = String(name || "").trim().slice(0, 30);
+  const cleanName = String(name || "").trim().slice(0, 30);
 
-      if (cleanName.length < 2) {
-        throw new Error("Display name must be at least 2 characters.");
-      }
+  if (cleanName.length < 2) {
+    throw new Error("Display name must be at least 2 characters.");
+  }
 
-      if (password.length < 8) {
-        throw new Error("Password must be at least 8 characters.");
-      }
+  if (password.length < 8) {
+    throw new Error("Password must be at least 8 characters.");
+  }
 
-      const newUser = await db.create({
-        userId: Appwrite.ID.unique(),
-        email: email,
-        password: password,
-        name: cleanName
-      });
+  let sessionCreated = false;
 
-      await db.createEmailPasswordSession({
-        email: email,
-        password: password
-      });
+  try {
+    const newUser = await db.create({
+      userId: Appwrite.ID.unique(),
+      email: email,
+      password: password,
+      name: cleanName
+    });
 
-      await db.updatePrefs(cleanPreferences({}));
+    await db.createEmailPasswordSession({
+      email: email,
+      password: password
+    });
 
-      const profile = await syncProfile(newUser);
+    sessionCreated = true;
 
-      emit("SIGNED_IN", profile);
+    await db.updatePrefs({
+      prefs: cleanPreferences({})
+    });
 
-      return {
-        user: profile,
-        needsEmailConfirmation: false
-      };
-    },
+    await db.createEmailVerification({
+      url: window.location.origin + window.location.pathname
+    });
+
+    const profile = await syncProfile(newUser);
+
+    await db.deleteSession({
+      sessionId: "current"
+    });
+
+    sessionCreated = false;
+
+    return {
+      user: profile,
+      needsEmailConfirmation: true
+    };
+
+  } catch (error) {
+    if (sessionCreated) {
+      try {
+        await db.deleteSession({
+          sessionId: "current"
+        });
+      } catch (e) {}
+    }
+
+    throw error;
+  }
+},
+
 
     async signIn(email, password) {
       const db = ready();
