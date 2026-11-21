@@ -1,0 +1,20 @@
+VOLT V2.5 WEB UPDATE
+====================
+
+WHAT CHANGED
+- Preserves the existing VOLT interface, account screens, Supabase auth code and schema.
+- Limits the planned launch catalogue to exactly 10 countries: South Africa, United States, United Kingdom, Germany, Netherlands, France, Canada, India, Japan and Australia.
+- Adds exactly four display-only Coming Soon slots. They cannot be selected or favourited.
+- Uses the label “Planned countries” because no working VPN server endpoints are included in this update.
+- Removes unsupported country preferences and favourites from local storage and filters old cloud-synced country preferences.
+- Updates the service-worker cache name to V2.5.
+
+INSTALL
+1. Back up your current website/project folder.
+2. Replace the existing files with the files in this update folder, keeping the filenames exactly as shown.
+3. Keep your own Supabase URL and anon key in supabase-config.js if already configured. This update copies the supplied configuration unchanged.
+4. Publish the files to the same GitHub Pages repository/folder as your current VOLT site.
+5. Open the site in Chrome and refresh. If an old screen remains cached, close the tab and reopen after the service worker updates.
+
+IMPORTANT
+The 10 countries are planned UI locations only. This update does not create VPN servers, WireGuard peers, tunnels, or working VPN connectivity. Do not advertise any country as connectable until its real endpoint is deployed and tested.
