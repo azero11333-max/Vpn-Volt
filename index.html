@@ -230,7 +230,9 @@ function init(){updateDemoCount();document.body.classList.toggle("light",read("v
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}))}
 init();
 
-</script>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@29.0.0"></script>
+<script src="appwrite-config.js"></script>
+<script src="volt-auth.js"></script>
 
   
 </body></html>
