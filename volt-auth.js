@@ -159,7 +159,14 @@ async signUp(name, email, password) {
   }
 },
 
+async verifyEmail(userId, secret) {
+  const db = ready();
 
+  return await db.updateEmailVerification({
+    userId: userId,
+    secret: secret
+  });
+},
     async signIn(email, password) {
       const db = ready();
 
