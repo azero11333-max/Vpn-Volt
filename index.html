@@ -145,8 +145,8 @@ footer{padding-bottom:28px}
 <div class="modal-bg" id="authModal"><div class="modal"><div class="row"><h2 id="authTitle">Account preview</h2><button class="icon" onclick="closeModal('authModal')">✕</button></div><p class="sub" id="authDescription">Preview only.</p><div class="warning">Demo only. Do not enter a real email password or sensitive information. No account is created and nothing is sent to a server.</div><button class="primary" onclick="demoAuth()">Continue preview</button></div></div>
 <div class="modal-bg" id="notificationModal"><div class="modal"><div class="row"><h2>🔔 Notifications</h2><button class="icon" onclick="closeModal('notificationModal')">✕</button></div><div id="notificationList"></div><button class="secondary" style="width:100%;margin-top:10px" onclick="markRead()">Mark all as read</button></div></div>
 <footer>VOLT VPN · V2.5 · DEVELOPMENT PREVIEW</footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@appwrite/appwrite-js@2"></script>
+<script src="appwrite-config.js"></script>
 <script src="volt-auth.js"></script>
 <script>
 const $=id=>document.getElementById(id);
