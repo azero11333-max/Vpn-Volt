@@ -1,98 +1,267 @@
-/* VOLT V2.3 — Supabase authentication connector.
-   This browser client uses only the public anon/publishable key. Database access
-   must be protected by the SQL Row Level Security policies in supabase-schema.sql. */
+
+/* VOLT — Appwrite authentication connector */
 (function () {
   let client = null;
-  const config = window.VOLT_SUPABASE_CONFIG || {};
-  const configured = () => !!(config.url && config.anonKey &&
-    !config.url.includes("YOUR_SUPABASE") && !config.anonKey.includes("YOUR_SUPABASE"));
+  let account = null;
+  const listeners = new Set();
+  let lastUserId = null;
+
+  const config = window.VOLT_APPWRITE_CONFIG || {};
+
+  const configured = () => !!(
+    config.endpoint &&
+    config.projectId &&
+    !config.projectId.includes("YOUR_")
+  );
+
   function ready() {
-    if (!configured()) throw new Error("VOLT online accounts are not connected yet. Finish the Supabase setup first.");
-    if (!window.supabase || !window.supabase.createClient) throw new Error("The Supabase client could not load. Check your internet connection and reload VOLT.");
-    if (!client) client = window.supabase.createClient(config.url, config.anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    if (!configured()) {
+      throw new Error("VOLT online accounts are not configured yet.");
+    }
+
+    if (!window.Appwrite) {
+      throw new Error("Appwrite SDK could not load. Check your internet connection and reload VOLT.");
+    }
+
+    if (!account) {
+      client = new Appwrite.Client()
+        .setEndpoint(config.endpoint)
+        .setProject(config.projectId);
+
+      account = new Appwrite.Account(client);
+    }
+
+    return account;
+  }
+
+  function emit(event, user, error) {
+    lastUserId = user?.id || null;
+
+    listeners.forEach(callback => {
+      try {
+        callback(event, user, error || null);
+      } catch (e) {
+        console.error("VOLT auth listener:", e);
+      }
     });
-    return client;
   }
-  async function syncProfile(user, displayName) {
+
+  async function syncProfile(user) {
     if (!user) return null;
+
     const db = ready();
-    const { data: existing, error: readError } = await db.from("profiles").select("display_name, preferences").eq("id", user.id).maybeSingle();
-    if (readError) throw readError;
-    const name = (displayName || existing?.display_name || user.user_metadata?.display_name || user.email?.split("@")[0] || "VOLT User").slice(0, 30);
-    const { error } = await db.from("profiles").upsert({ id: user.id, display_name: name, updated_at: new Date().toISOString() }, { onConflict: "id" });
-    if (error) throw error;
-    return { id: user.id, email: user.email, name, preferences: existing?.preferences || {} };
+    let preferences = {};
+
+    try {
+      preferences = await db.getPrefs();
+    } catch (e) {
+      console.warn("VOLT preferences could not load:", e);
+    }
+
+    return {
+      id: user.$id,
+      email: user.email,
+      name: user.name || user.email?.split("@")[0] || "VOLT User",
+      preferences: preferences || {}
+    };
   }
+
+  const cleanPreferences = preferences => ({
+    preferred_country:
+      preferences.preferred_country || {
+        code: "ZA",
+        name: "South Africa"
+      },
+
+    favourite_countries:
+      Array.isArray(preferences.favourite_countries)
+        ? preferences.favourite_countries.slice(0, 100)
+        : [],
+
+    language:
+      ["en", "af", "zu"].includes(preferences.language)
+        ? preferences.language
+        : "en",
+
+    theme: preferences.theme === true,
+
+    accent:
+      /^#[0-9a-fA-F]{6}$/.test(preferences.accent || "")
+        ? preferences.accent
+        : "#168cff"
+  });
+
   window.VOLTAuth = {
     isConfigured: configured,
+
     async signUp(name, email, password) {
       const db = ready();
-      const { data, error } = await db.auth.signUp({ email, password, options: { data: { display_name: name }, emailRedirectTo: location.href.split("#")[0] } });
-      if (error) throw error;
-      if (data.user && data.session) await syncProfile(data.user, name);
-      return { user: data.user, needsEmailConfirmation: !!data.user && !data.session };
+
+      const cleanName = String(name || "").trim().slice(0, 30);
+
+      if (cleanName.length < 2) {
+        throw new Error("Display name must be at least 2 characters.");
+      }
+
+      if (password.length < 8) {
+        throw new Error("Password must be at least 8 characters.");
+      }
+
+      const newUser = await db.create({
+        userId: Appwrite.ID.unique(),
+        email: email,
+        password: password,
+        name: cleanName
+      });
+
+      await db.createEmailPasswordSession({
+        email: email,
+        password: password
+      });
+
+      await db.updatePrefs(cleanPreferences({}));
+
+      const profile = await syncProfile(newUser);
+
+      emit("SIGNED_IN", profile);
+
+      return {
+        user: profile,
+        needsEmailConfirmation: false
+      };
     },
+
     async signIn(email, password) {
       const db = ready();
-      const { data, error } = await db.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      const profile = await syncProfile(data.user);
+
+      await db.createEmailPasswordSession({
+        email: email,
+        password: password
+      });
+
+      const user = await db.get();
+      const profile = await syncProfile(user);
+
+      emit("SIGNED_IN", profile);
+
       return profile;
     },
+
     async updateProfile(name) {
       const db = ready();
-      const { data: authData, error: authError } = await db.auth.getUser();
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Please log in before editing your online profile.");
       const cleanName = String(name || "").trim().slice(0, 30);
-      if (cleanName.length < 2) throw new Error("Display name must be at least 2 characters.");
-      const { data: row, error } = await db.from("profiles").update({ display_name: cleanName, updated_at: new Date().toISOString() }).eq("id", authData.user.id).select("preferences").single();
-      if (error) throw error;
-      return { id: authData.user.id, email: authData.user.email, name: cleanName, preferences: row?.preferences || {} };
+
+      if (cleanName.length < 2) {
+        throw new Error("Display name must be at least 2 characters.");
+      }
+
+      await db.updateName({ name: cleanName });
+
+      const user = await db.get();
+      const profile = await syncProfile(user);
+
+      emit("USER_UPDATED", profile);
+
+      return profile;
     },
+
     async updatePreferences(preferences) {
       const db = ready();
-      const { data: authData, error: authError } = await db.auth.getUser();
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Please log in before syncing VOLT preferences.");
-      const clean = {
-        preferred_country: preferences.preferred_country || { code: "ZA", name: "South Africa" },
-        favourite_countries: Array.isArray(preferences.favourite_countries) ? preferences.favourite_countries.slice(0, 100) : [],
-        language: ["en", "af", "zu"].includes(preferences.language) ? preferences.language : "en",
-        theme: preferences.theme === true,
-        accent: /^#[0-9a-fA-F]{6}$/.test(preferences.accent || "") ? preferences.accent : "#168cff"
-      };
-      const { error } = await db.from("profiles").update({ preferences: clean, updated_at: new Date().toISOString() }).eq("id", authData.user.id);
-      if (error) throw error;
+
+      const clean = cleanPreferences(preferences);
+
+      await db.updatePrefs({ prefs: clean });
+
       return clean;
     },
+
     async resetPassword(email) {
       const db = ready();
-      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: location.href.split("#")[0] });
-      if (error) throw error;
+
+      const token = await db.createRecoveryOTP({
+        email: email
+      });
+
+      const code = window.prompt(
+        "If this email belongs to a VOLT account, Appwrite will send a 6-digit recovery code. Enter that code here:"
+      );
+
+      if (!code) {
+        return;
+      }
+
+      const newPassword = window.prompt(
+        "Enter your new password (at least 8 characters):"
+      );
+
+      if (!newPassword || newPassword.length < 8) {
+        throw new Error("The new password must be at least 8 characters.");
+      }
+
+      await db.updateRecoveryOTP({
+        userId: token.userId,
+        secret: code.trim(),
+        password: newPassword
+      });
+
+      window.alert("Your password has been changed. Please log in using your new password.");
     },
+
     async signOut() {
       const db = ready();
-      const { error } = await db.auth.signOut();
-      if (error) throw error;
+
+      await db.deleteSession({
+        sessionId: "current"
+      });
+
+      emit("SIGNED_OUT", null);
     },
+
     async currentUser() {
       const db = ready();
-      const { data, error } = await db.auth.getUser();
-      if (error && error.name !== "AuthSessionMissingError") throw error;
-      return data?.user ? syncProfile(data.user) : null;
+
+      try {
+        const user = await db.get();
+        return await syncProfile(user);
+      } catch (e) {
+        if (
+          e.code === 401 ||
+          e.type === "general_unauthorized_scope" ||
+          e.type === "user_unauthorized"
+        ) {
+          return null;
+        }
+
+        throw e;
+      }
     },
+
     onChange(callback) {
-      if (!configured() || !window.supabase?.createClient) return;
-      const db = ready();
-      return db.auth.onAuthStateChange((event, session) => {
-        // Defer profile database work outside Supabase's auth callback.
-        setTimeout(async () => {
-          try { callback(event, session?.user ? await syncProfile(session.user) : null); }
-          catch (error) { console.error("VOLT profile sync:", error); callback(event, null, error); }
-        }, 0);
-      });
+      if (typeof callback !== "function" || !configured()) {
+        return () => {};
+      }
+
+      ready();
+      listeners.add(callback);
+
+      return () => listeners.delete(callback);
     }
   };
+
+  // Refresh account state when the user returns to the page.
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState !== "visible" || !configured()) return;
+
+    try {
+      const user = await window.VOLTAuth.currentUser();
+      const currentId = user?.id || null;
+
+      if (currentId !== lastUserId) {
+        emit(currentId ? "SIGNED_IN" : "SIGNED_OUT", user);
+      }
+    } catch (e) {
+      console.warn("VOLT session refresh:", e);
+    }
+  });
 })();
+
