@@ -168,20 +168,29 @@ async verifyEmail(userId, secret) {
   });
 },
     async signIn(email, password) {
-      const db = ready();
+  const db = ready();
 
-      await db.createEmailPasswordSession({
-        email: email,
-        password: password
-      });
+  await db.createEmailPasswordSession({
+    email: email,
+    password: password
+  });
 
-      const user = await db.get();
-      const profile = await syncProfile(user);
+  const user = await db.get();
 
-      emit("SIGNED_IN", profile);
+  if (!user.emailVerification) {
+    await db.deleteSession({ sessionId: "current" });
 
-      return profile;
-    },
+    throw new Error(
+      "Please verify your email address before logging in. Check your inbox for the verification link."
+    );
+  }
+
+  const profile = await syncProfile(user);
+
+  emit("SIGNED_IN", profile);
+
+  return profile;
+},
 
     async updateProfile(name) {
       const db = ready();
