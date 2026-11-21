@@ -229,6 +229,37 @@ window.addEventListener("online",network);window.addEventListener("offline",netw
   
 
 
+function init() {
+  try {
+    network();
+    updateCountry();
+    renderHome();
+    renderSettings();
+    renderProfile();
+    renderNotifications();
+    updateDemoCount();
+    refreshOnlineStatus();
+  } catch (e) {
+    console.error("VOLT startup error:", e);
+  }
+
+  setTimeout(() => {
+    $("splash").style.opacity = "0";
+
+    setTimeout(() => {
+      $("splash").style.display = "none";
+    }, 550);
+  }, 900);
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .catch(console.warn);
+  });
+}
+
 init();
 
 </script>
