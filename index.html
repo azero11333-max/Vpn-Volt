@@ -260,7 +260,18 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-
+<script>
+window.addEventListener("error", function(e) {
+  const splash = document.getElementById("splash");
+  if (splash) {
+    splash.innerHTML =
+      '<div style="color:white;padding:25px;text-align:center">' +
+      '<h2>VOLT ERROR</h2><p>' +
+      (e.message || "Unknown JavaScript error") +
+      '</p><p>Line: ' + (e.lineno || "unknown") +
+      '</p></div>';
+  }
+});
 
 </script>
 </body>
