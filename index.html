@@ -249,7 +249,13 @@ window.addEventListener("online",network);window.addEventListener("offline",netw
     history.replaceState({}, document.title, window.location.pathname);
   }
   }
-function init(){updateDemoCount();document.body.classList.toggle("light",read("volt_theme",false));document.documentElement.style.setProperty("--blue",accent);updateCountry();renderProfile();renderHome();renderSettings();renderNotifications();$("languageSelect").value=language;if(language!=="en"){let t=translations[language];$("welcomeTitle").textContent=t.home;$("premium").querySelector("h1").textContent=t.premium;$("profile").querySelector("h1").textContent=t.profile;$("settings").querySelector("h1").textContent=t.settings;$("about").querySelector("h1").textContent=t.about}network();refreshOnlineStatus();setInterval(()=>{seconds++;$("timer").textContent=String(Math.floor(seconds/60)).padStart(2,"0")+":"+String(seconds%60).padStart(2,"0")},1000);setTimeout(()=>{$("splash").style.opacity="0";setTimeout(()=>$("splash").style.display="none",550)},900)handleEmailVerification();}
+setTimeout(()=>{
+  $("splash").style.opacity="0";
+  setTimeout(()=>$("splash").style.display="none",550);
+},900);
+
+handleEmailVerification();
+  }
   
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}))}
 
