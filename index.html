@@ -226,7 +226,8 @@ function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.
 let deferredPrompt=null;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("installCard").classList.add("show")});
 function network(){let online=navigator.onLine;$("networkStatus").innerHTML=online?'<span class="green">● Online</span>':'● Offline';}
 window.addEventListener("online",network);window.addEventListener("offline",network);
-  async function handleEmailVerification() {
+  
+async function handleEmailVerification() {
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId");
   const secret = params.get("secret");
@@ -235,7 +236,6 @@ window.addEventListener("online",network);window.addEventListener("offline",netw
 
   try {
     await VOLTAuth.verifyEmail(userId, secret);
-
     showPage("account");
     setAuthMode("login");
     authMessage("Your email has been verified! You can now log in.");
@@ -246,59 +246,15 @@ window.addEventListener("online",network);window.addEventListener("offline",netw
       e.message || "Email verification failed. Please request a new link."
     );
   } finally {
-    history.replaceState({}, document.title, window.location.pathname);
-  }
-  }
-setTimeout(()=>{
-
-function init() {
-  network();
-  updateCountry();
-  renderHome();
-  renderSettings();
-  renderProfile();
-  renderNotifications();
-  updateDemoCount();
-  refreshOnlineStatus();
-
-  setTimeout(() => {
-    $("splash").style.opacity = "0";
-    setTimeout(() => {
-      $("splash").style.display = "none";
-    }, 550);
-  }, 900);
-
-  handleEmailVerification();
-}
-async function handleEmailVerification() {
-  const params = new URLSearchParams(window.location.search);
-  const userId = params.get("userId");
-  const secret = params.get("secret");
-
-  if (!userId || !secret) return;
-
-  try {
-    await VOLTAuth.verifyEmail(userId, secret);
-    showPage("account");
-    setAuthMode("login");
-    authMessage("Your email has been verified! You can now log in.");
-  } catch (e) {
-    showPage("account");
-    setAuthMode("login");
-    authMessage(e.message || "Email verification failed. Please request a new link.");
-  } finally {
-    window.history.replaceState({}, document.title, window.location.pathname);
+    window.history.replaceState(
+      {},
+      document.title,
+      window.location.pathname
+    );
   }
 }
 
 function init() {
-  setTimeout(() => {
-    $("splash").style.opacity = "0";
-    setTimeout(() => {
-      $("splash").style.display = "none";
-    }, 550);
-  }, 900);
-
   try {
     network();
     updateCountry();
@@ -307,80 +263,31 @@ function init() {
     renderProfile();
     renderNotifications();
     updateDemoCount();
+    refreshOnlineStatus();
   } catch (e) {
     console.error("VOLT startup error:", e);
   }
 
-  try {
-    refreshOnlineStatus();
-  } catch (e) {
-    console.error("VOLT account startup error:", e);
-  }
-
-  handleEmailVerification();
-}
-async function handleEmailVerification() {
-  const params = new URLSearchParams(window.location.search);
-  const userId = params.get("userId");
-  const secret = params.get("secret");
-
-  if (!userId || !secret) return;
-
-  try {
-    await VOLTAuth.verifyEmail(userId, secret);
-    showPage("account");
-    setAuthMode("login");
-    authMessage("Your email has been verified! You can now log in.");
-  } catch (e) {
-    showPage("account");
-    setAuthMode("login");
-    authMessage(e.message || "Email verification failed. Please request a new link.");
-  } finally {
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-}
-
-function init() {
   setTimeout(() => {
     $("splash").style.opacity = "0";
     setTimeout(() => {
       $("splash").style.display = "none";
     }, 550);
   }, 900);
-
-  try {
-    network();
-    updateCountry();
-    renderHome();
-    renderSettings();
-    renderProfile();
-    renderNotifications();
-    updateDemoCount();
-  } catch (e) {
-    console.error("VOLT startup error:", e);
-  }
-
-  try {
-    refreshOnlineStatus();
-  } catch (e) {
-    console.error("VOLT account startup error:", e);
-  }
 
   handleEmailVerification();
 }
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(console.warn);
+    navigator.serviceWorker
+      .register("./service-worker.js")
+      .catch(console.warn);
   });
 }
 
 init();
 
-
-  
-
-init();
 </script>
 </body>
 </html>
