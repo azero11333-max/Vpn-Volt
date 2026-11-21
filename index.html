@@ -270,6 +270,104 @@ function init() {
 
   handleEmailVerification();
 }
+async function handleEmailVerification() {
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get("userId");
+  const secret = params.get("secret");
+
+  if (!userId || !secret) return;
+
+  try {
+    await VOLTAuth.verifyEmail(userId, secret);
+    showPage("account");
+    setAuthMode("login");
+    authMessage("Your email has been verified! You can now log in.");
+  } catch (e) {
+    showPage("account");
+    setAuthMode("login");
+    authMessage(e.message || "Email verification failed. Please request a new link.");
+  } finally {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+function init() {
+  setTimeout(() => {
+    $("splash").style.opacity = "0";
+    setTimeout(() => {
+      $("splash").style.display = "none";
+    }, 550);
+  }, 900);
+
+  try {
+    network();
+    updateCountry();
+    renderHome();
+    renderSettings();
+    renderProfile();
+    renderNotifications();
+    updateDemoCount();
+  } catch (e) {
+    console.error("VOLT startup error:", e);
+  }
+
+  try {
+    refreshOnlineStatus();
+  } catch (e) {
+    console.error("VOLT account startup error:", e);
+  }
+
+  handleEmailVerification();
+}
+async function handleEmailVerification() {
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get("userId");
+  const secret = params.get("secret");
+
+  if (!userId || !secret) return;
+
+  try {
+    await VOLTAuth.verifyEmail(userId, secret);
+    showPage("account");
+    setAuthMode("login");
+    authMessage("Your email has been verified! You can now log in.");
+  } catch (e) {
+    showPage("account");
+    setAuthMode("login");
+    authMessage(e.message || "Email verification failed. Please request a new link.");
+  } finally {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+function init() {
+  setTimeout(() => {
+    $("splash").style.opacity = "0";
+    setTimeout(() => {
+      $("splash").style.display = "none";
+    }, 550);
+  }, 900);
+
+  try {
+    network();
+    updateCountry();
+    renderHome();
+    renderSettings();
+    renderProfile();
+    renderNotifications();
+    updateDemoCount();
+  } catch (e) {
+    console.error("VOLT startup error:", e);
+  }
+
+  try {
+    refreshOnlineStatus();
+  } catch (e) {
+    console.error("VOLT account startup error:", e);
+  }
+
+  handleEmailVerification();
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -279,6 +377,8 @@ if ("serviceWorker" in navigator) {
 
 init();
 
+
+  
 
 init();
 </script>
